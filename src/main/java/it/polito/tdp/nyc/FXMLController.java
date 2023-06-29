@@ -1,8 +1,14 @@
 package it.polito.tdp.nyc;
 
 import java.net.URL;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.ResourceBundle;
+
+import it.polito.tdp.nyc.model.Archi;
 import it.polito.tdp.nyc.model.Model;
+import it.polito.tdp.nyc.model.NTA;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -32,19 +38,19 @@ public class FXMLController {
     private Button btnCreaLista; // Value injected by FXMLLoader
 
     @FXML // fx:id="clPeso"
-    private TableColumn<?, ?> clPeso; // Value injected by FXMLLoader
+    private TableColumn<Archi, Double> clPeso; // Value injected by FXMLLoader
 
     @FXML // fx:id="clV1"
-    private TableColumn<?, ?> clV1; // Value injected by FXMLLoader
+    private TableColumn<Archi, String> clV1; // Value injected by FXMLLoader
 
     @FXML // fx:id="clV2"
-    private TableColumn<?, ?> clV2; // Value injected by FXMLLoader
+    private TableColumn<Archi, String> clV2; // Value injected by FXMLLoader
 
     @FXML // fx:id="cmbBorough"
-    private ComboBox<?> cmbBorough; // Value injected by FXMLLoader
+    private ComboBox<String> cmbBorough; // Value injected by FXMLLoader
 
     @FXML // fx:id="tblArchi"
-    private TableView<?> tblArchi; // Value injected by FXMLLoader
+    private TableView<Archi> tblArchi; // Value injected by FXMLLoader
 
     @FXML // fx:id="txtDurata"
     private TextField txtDurata; // Value injected by FXMLLoader
@@ -54,20 +60,74 @@ public class FXMLController {
 
     @FXML // fx:id="txtResult"
     private TextArea txtResult; // Value injected by FXMLLoader
+    
+    //boolean
+    private boolean grafoCreato = false;
 
     @FXML
     void doAnalisiArchi(ActionEvent event) {
     	
+    	model.getAnalisiArchi();
+    	txtResult.setText("PESO MEDIO: " + model.getPesoMedio() + "\nARCHI CON PESO MAGGIORE DEL PESO MEDIO: " + model.getAnalisiArchi().size());
+    	for (Archi a : model.getAnalisiArchi()) 
+    		txtResult.appendText("\n" + a + "\n");
 
     }
 
     @FXML
     void doCreaGrafo(ActionEvent event) {
     	
+    	String input = cmbBorough.getValue();
+    	
+    	//controllo
+    	if (input == "") {
+    		txtResult.setText("Selezionare un valore.");
+    	}
+    	
+    	model.buildGraph(input);
+    	txtResult.setText("Grafo creato! \n #Vertici: " + model.getNVetici() + "\n #Archi: "+ model.getNArchi() );
+    	grafoCreato = true;
+    	
     }
 
     @FXML
     void doSimula(ActionEvent event) {
+    	
+    	txtResult.clear();
+    	
+    	//il grafo deve esistere
+    	if (!this.grafoCreato){
+    		txtResult.appendText("Errore:  Non e' stato creato un grafo. Riprovare");
+    	}
+    	
+    	String duration = txtDurata.getText();
+    	String probShare = txtProb.getText();
+    	
+    	//controlli input
+    	if (duration =="" || probShare =="") {
+    		txtResult.appendText("Errore. Non sono stati inseriti i valori. Riprovare");
+    	}
+    	
+    	//conversione
+    	double prob = 0.0;
+    	int dur = 0;
+    	
+    	try {
+    		
+    		prob = Double.parseDouble(probShare);
+    		dur = Integer.parseInt(duration);
+    		
+    	} catch(NumberFormatException e) {
+    		txtResult.appendText("Errore: inserire dati numerici\n");
+    		return ;
+    	}
+    	
+    	//output
+    	Map<NTA, Integer> output = model.simulazione(dur, prob);
+    	
+    	for (NTA n : output.keySet()) {
+    		txtResult.appendText(n.getNTACode() + ": " + output.get(n) + "\n" );
+    	}
 
     }
 
@@ -90,6 +150,10 @@ public class FXMLController {
     
     public void setModel(Model model) {
     	this.model = model;
+    	
+    	//mettere valori nella tendina --> PUNTO 1 A
+    	List<String> boroughs = model.getBorough();
+    	cmbBorough.getItems().setAll(boroughs);
     }
 
 }
